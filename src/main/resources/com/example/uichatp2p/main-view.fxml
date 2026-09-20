@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane prefHeight="550.0" prefWidth="850.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.uichatp2p.MainController">
+    <!-- CỘT TRÁI: DANH SÁCH PEER ONLINE -->
+    <left>
+        <VBox prefWidth="260.0" spacing="10.0" style="-fx-background-color: #f4f4f4; -fx-border-color: #ddd; -fx-border-width: 0 1 0 0;" BorderPane.alignment="CENTER">
+            <padding>
+                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+            </padding>
+            <children>
+                <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Danh bạ Online (P2P)" />
+                <ListView fx:id="peerListView" VBox.vgrow="ALWAYS" />
+                <Button maxWidth="Infinity" onAction="#handleRefreshPeers" text="Làm mới danh sách" />
+            </children>
+        </VBox>
+    </left>
+
+    <!-- KHU VỰC CHÍNH: KHUNG CHAT & TRUYỀN FILE -->
+    <center>
+        <VBox spacing="10.0" BorderPane.alignment="CENTER">
+            <padding>
+                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+            </padding>
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                    <children>
+                        <Label fx:id="targetPeerLabel" style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Chưa chọn người nhận..." />
+                    </children>
+                </HBox>
+
+                <TextArea fx:id="chatArea" editable="false" wrapText="true" VBox.vgrow="ALWAYS" />
+
+                <!-- Thanh tiến trình tải file -->
+                <ProgressBar fx:id="fileProgressBar" maxWidth="Infinity" progress="0.0" visible="false" />
+                <Label fx:id="statusLabel" text="Trạng thái: Sẵn sàng" textFill="#555555" />
+
+                <!-- Khung nhập liệu và nút bấm -->
+                <HBox spacing="8.0">
+                    <children>
+                        <TextField fx:id="messageInput" onAction="#handleSendMessage" promptText="Nhập nội dung tin nhắn..." HBox.hgrow="ALWAYS" />
+                        <Button onAction="#handleSendMessage" style="-fx-background-color: #0078D7; -fx-text-fill: white;" text="Gửi Text" />
+                        <Button onAction="#handleSendFile" style="-fx-background-color: #28a745; -fx-text-fill: white;" text="Gửi File" />
+                    </children>
+                </HBox>
+            </children>
+        </VBox>
+    </center>
+</BorderPane>
