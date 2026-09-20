@@ -11,7 +11,10 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +28,10 @@ public class MainController {
     @FXML private Label statusLabel;
     @FXML private ProgressBar fileProgressBar;
 
+    // Các thành phần cho tính năng Tìm kiếm File
+    @FXML private TextField searchFileInput;
+    @FXML private ListView<String> searchResultsListView;
+
     private String myUsername;
     private String myIp;
     private int myP2pPort;
@@ -35,6 +42,9 @@ public class MainController {
     private ScheduledExecutorService scheduler;
     private ChatHistoryManager historyManager;
 
+    // Danh sách các file mà client này đang chia sẻ (an toàn đa luồng)
+    private final List<String> mySharedFiles = new CopyOnWriteArrayList<>();
+
     public void initData(String username, String ip, int port, String discoveryUrl) {
         this.myUsername = username;
         this.myIp = ip;
@@ -43,6 +53,7 @@ public class MainController {
         this.discoveryClient = new DiscoveryClient(discoveryUrl);
         this.historyManager = new ChatHistoryManager(myUsername);
 
+        // Tùy chỉnh hiển thị ListView danh bạ
         peerListView.setCellFactory(param -> new ListCell<>() {
             @Override
             protected void updateItem(PeerInfo item, boolean empty) {
@@ -55,6 +66,7 @@ public class MainController {
             }
         });
 
+        // Click chọn bạn chat
         peerListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 targetPeerLabel.setText("Đang kết nối tới: " + newVal.getUsername());
@@ -66,6 +78,7 @@ public class MainController {
 
         startP2PListener();
 
+        // Định kỳ 10s đồng bộ Heartbeat kèm danh sách sharedFiles
         scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(this::syncWithDiscoveryServer, 0, 10, TimeUnit.SECONDS);
     }
@@ -84,7 +97,7 @@ public class MainController {
                         statusLabel.setText("Có tin nhắn mới từ: " + sender);
                     }
                 }),
-                // Nhận file
+                // Nhận file qua P2P
                 (sender, fileName, cur, total, done) -> Platform.runLater(() -> {
                     fileProgressBar.setVisible(true);
                     double progress = (double) cur / total;
@@ -92,8 +105,16 @@ public class MainController {
 
                     if (done) {
                         statusLabel.setText("Đã nhận xong: " + fileName);
-                        // Ghi nhận log nhận file vào lịch sử chat
+
+                        // 1. Thêm vào danh sách chia sẻ của mình (Node nhận trở thành Seed)
+                        if (!mySharedFiles.contains(fileName)) {
+                            mySharedFiles.add(fileName);
+                            new Thread(this::syncWithDiscoveryServer).start(); // Cập nhật Server ngay
+                        }
+
+                        // 2. Ghi nhận vào file lịch sử chat UTF-8
                         historyManager.appendMessage(sender, sender, "[Đã gửi một tệp tin/ảnh: " + fileName + "]");
+
                         chatArea.appendText("[Hệ thống]: Đã lưu file '" + fileName + "' vào thư mục Downloads từ " + sender + "\n");
                         chatArea.positionCaret(chatArea.getText().length());
                         fileProgressBar.setVisible(false);
@@ -108,7 +129,8 @@ public class MainController {
 
     private void syncWithDiscoveryServer() {
         try {
-            discoveryClient.register(new PeerInfo(myUsername, myIp, myP2pPort, List.of()));
+            // GỬI KÈM DANH SÁCH mySharedFiles LÊN SERVER THAY VÌ MẢNG RỖNG
+            discoveryClient.register(new PeerInfo(myUsername, myIp, myP2pPort, new ArrayList<>(mySharedFiles)));
             List<PeerInfo> peers = discoveryClient.getOnlinePeers();
 
             Platform.runLater(() -> {
@@ -134,6 +156,30 @@ public class MainController {
         } catch (Exception e) {
             Platform.runLater(() -> statusLabel.setText("Không thể kết nối tới Discovery Server!"));
         }
+    }
+
+    @FXML
+    private void handleSearchFiles() {
+        String keyword = searchFileInput.getText().trim();
+        if (keyword.isEmpty()) return;
+
+        new Thread(() -> {
+            List<Map<String, Object>> results = discoveryClient.searchFiles(keyword);
+            Platform.runLater(() -> {
+                searchResultsListView.getItems().clear();
+                if (results.isEmpty()) {
+                    searchResultsListView.getItems().add("Không tìm thấy file nào khớp!");
+                } else {
+                    for (Map<String, Object> item : results) {
+                        String file = (String) item.get("filename");
+                        String owner = (String) item.get("owner");
+                        String ip = (String) item.get("ip");
+                        int port = (Integer) item.get("port");
+                        searchResultsListView.getItems().add(String.format("📄 %s (tại %s @ %s:%d)", file, owner, ip, port));
+                    }
+                }
+            });
+        }).start();
     }
 
     @FXML
@@ -196,7 +242,14 @@ public class MainController {
 
                         if (completed) {
                             statusLabel.setText("Đã gửi xong: " + file.getName());
-                            // Ghi log gửi file của chính mình vào lịch sử chat
+
+                            // 1. Bên gửi thêm file vào danh sách chia sẻ của mình
+                            if (!mySharedFiles.contains(file.getName())) {
+                                mySharedFiles.add(file.getName());
+                                new Thread(this::syncWithDiscoveryServer).start(); // Cập nhật Server ngay
+                            }
+
+                            // 2. Ghi nhận log gửi file vào lịch sử chat
                             historyManager.appendMessage(target.getUsername(), myUsername, "[Đã gửi một tệp tin/ảnh: " + file.getName() + "]");
                             chatArea.appendText("[Hệ thống]: Đã gửi thành công file '" + file.getName() + "' tới " + target.getUsername() + "\n");
                             chatArea.positionCaret(chatArea.getText().length());

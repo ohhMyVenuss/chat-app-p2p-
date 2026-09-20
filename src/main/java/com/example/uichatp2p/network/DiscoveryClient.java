@@ -78,4 +78,22 @@ public class DiscoveryClient {
         }
         return null;
     }
+
+    public List<java.util.Map<String, Object>> searchFiles(String keyword) {
+        try {
+            String encodedKeyword = java.net.URLEncoder.encode(keyword, java.nio.charset.StandardCharsets.UTF_8);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + "/search?filename=" + encodedKeyword))
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                return mapper.readValue(response.body(), new TypeReference<List<java.util.Map<String, Object>>>() {});
+            }
+        } catch (Exception e) {
+            System.err.println("[-] Lỗi tìm kiếm file trên Server: " + e.getMessage());
+        }
+        return Collections.emptyList();
+    }
 }

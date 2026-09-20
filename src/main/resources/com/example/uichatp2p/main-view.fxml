@@ -4,17 +4,30 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane prefHeight="550.0" prefWidth="850.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.uichatp2p.MainController">
-    <!-- CỘT TRÁI: DANH SÁCH PEER ONLINE -->
+<BorderPane prefHeight="600.0" prefWidth="900.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.uichatp2p.MainController">
+    <!-- CỘT TRÁI: DANH BẠ PEER & TÌM KIẾM FILE -->
     <left>
-        <VBox prefWidth="260.0" spacing="10.0" style="-fx-background-color: #f4f4f4; -fx-border-color: #ddd; -fx-border-width: 0 1 0 0;" BorderPane.alignment="CENTER">
+        <VBox prefWidth="300.0" spacing="8.0" style="-fx-background-color: #f4f4f4; -fx-border-color: #ddd; -fx-border-width: 0 1 0 0;" BorderPane.alignment="CENTER">
             <padding>
                 <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
             </padding>
             <children>
-                <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Danh bạ Online (P2P)" />
-                <ListView fx:id="peerListView" VBox.vgrow="ALWAYS" />
-                <Button maxWidth="Infinity" onAction="#handleRefreshPeers" text="Làm mới danh sách" />
+                <Label style="-fx-font-weight: bold; -fx-font-size: 13px;" text="Danh bạ Online (P2P)" />
+                <ListView fx:id="peerListView" prefHeight="180.0" />
+
+                <Separator />
+
+                <!-- KHU VỰC TÌM KIẾM FILE CHIA SẺ TRÊN TOÀN MẠNG -->
+                <Label style="-fx-font-weight: bold; -fx-font-size: 13px;" text="Tìm kiếm File trên Mạng P2P" />
+                <HBox spacing="5.0">
+                    <children>
+                        <TextField fx:id="searchFileInput" promptText="Nhập tên file cần tìm..." HBox.hgrow="ALWAYS" onAction="#handleSearchFiles" />
+                        <Button text="Tìm" onAction="#handleSearchFiles" style="-fx-background-color: #17a2b8; -fx-text-fill: white;" />
+                    </children>
+                </HBox>
+
+                <ListView fx:id="searchResultsListView" VBox.vgrow="ALWAYS" />
+                <Button maxWidth="Infinity" onAction="#handleRefreshPeers" text="Làm mới danh bạ" />
             </children>
         </VBox>
     </left>
@@ -34,11 +47,9 @@
 
                 <TextArea fx:id="chatArea" editable="false" wrapText="true" VBox.vgrow="ALWAYS" />
 
-                <!-- Thanh tiến trình tải file -->
                 <ProgressBar fx:id="fileProgressBar" maxWidth="Infinity" progress="0.0" visible="false" />
                 <Label fx:id="statusLabel" text="Trạng thái: Sẵn sàng" textFill="#555555" />
 
-                <!-- Khung nhập liệu và nút bấm -->
                 <HBox spacing="8.0">
                     <children>
                         <TextField fx:id="messageInput" onAction="#handleSendMessage" promptText="Nhập nội dung tin nhắn..." HBox.hgrow="ALWAYS" />
